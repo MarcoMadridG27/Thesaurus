@@ -20,7 +20,7 @@ export function SignInForm() {
 
   return (
     <div className="space-y-6 fade-in-up">
-      <div className="text-center mb-8">
+      <div className="text-center mb-8 slide-up">
         <h1 className="text-4xl font-bold mb-2 bg-gradient-accent bg-clip-text text-transparent">
           Bienvenido de vuelta
         </h1>
@@ -29,42 +29,42 @@ export function SignInForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email Field */}
-        <div className="group">
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors">
+        <div className="group bounce-in" style={{ animationDelay: "0.1s" }}>
+          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Correo electrónico
           </label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors pointer-events-none" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
               type="email"
               placeholder="tu@empresa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary"
+              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
               required
             />
           </div>
         </div>
 
         {/* Password Field */}
-        <div className="group">
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors">
+        <div className="group bounce-in" style={{ animationDelay: "0.2s" }}>
+          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Contraseña
           </label>
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors pointer-events-none" />
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary"
+              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -72,15 +72,15 @@ export function SignInForm() {
         </div>
 
         {/* Remember & Forgot */}
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 cursor-pointer">
+        <div className="flex items-center justify-between text-sm bounce-in" style={{ animationDelay: "0.3s" }}>
+          <label className="flex items-center gap-2 cursor-pointer group/check">
             <input
               type="checkbox"
-              className="w-4 h-4 rounded border border-border checked:bg-primary checked:border-primary"
+              className="w-4 h-4 rounded border border-border checked:bg-primary checked:border-primary group-hover/check:border-primary/60 transition-all duration-200"
             />
-            <span className="text-foreground/70 hover:text-foreground transition-colors">Recuérdame</span>
+            <span className="text-foreground/70 hover:text-foreground transition-colors duration-200">Recuérdame</span>
           </label>
-          <Link href="#" className="text-primary hover:text-primary/80 transition-colors font-medium">
+          <Link href="#" className="text-primary hover:text-primary/80 transition-colors duration-200 font-medium">
             ¿Olvidaste tu contraseña?
           </Link>
         </div>
@@ -88,7 +88,8 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="button-vibrant w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold"
+          className="button-premium w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 bounce-in"
+          style={{ animationDelay: "0.4s" }}
         >
           {isLoading ? (
             <>
@@ -98,14 +99,14 @@ export function SignInForm() {
           ) : (
             <>
               Ingresar
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
             </>
           )}
         </button>
       </form>
 
       {/* Divider */}
-      <div className="relative">
+      <div className="relative bounce-in" style={{ animationDelay: "0.5s" }}>
         <div className="absolute inset-0 flex items-center">
           <div className="w-full border-t border-border"></div>
         </div>
@@ -115,7 +116,10 @@ export function SignInForm() {
       </div>
 
       {/* Google Button */}
-      <button className="w-full py-3 flex items-center justify-center gap-2 border-2 border-border rounded-xl hover:bg-primary/5 transition-all duration-300 font-semibold text-foreground hover:border-primary group">
+      <button
+        className="w-full py-3 flex items-center justify-center gap-2 border-2 border-border rounded-xl hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 font-semibold text-foreground hover:border-primary group bounce-in"
+        style={{ animationDelay: "0.6s" }}
+      >
         <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -138,9 +142,12 @@ export function SignInForm() {
       </button>
 
       {/* Sign Up Link */}
-      <p className="text-center text-foreground/70">
+      <p className="text-center text-foreground/70 bounce-in" style={{ animationDelay: "0.7s" }}>
         ¿No tienes cuenta?{" "}
-        <Link href="/auth/signup" className="text-primary hover:text-primary/80 font-semibold transition-colors">
+        <Link
+          href="/auth/signup"
+          className="text-primary hover:text-primary/80 font-semibold transition-colors duration-200"
+        >
           Regístrate aquí
         </Link>
       </p>

@@ -4,71 +4,71 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Modern Vibrant Fintech: Teal/Cyan + Warm Orange/Amber */
-  --background: oklch(0.98 0.01 200);
-  --foreground: oklch(0.15 0.01 200);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 200);
+  /* Premium Fintech Design System - Dark Modern Theme */
+  --background: oklch(0.95 0.01 200);
+  --foreground: oklch(0.15 0.02 200);
+  --card: oklch(0.99 0.01 200);
+  --card-foreground: oklch(0.12 0.02 200);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 200);
-  --primary: oklch(0.55 0.2 180); /* Vibrant Teal */
+  --popover-foreground: oklch(0.12 0.02 200);
+  --primary: oklch(0.58 0.22 185); /* Rich Teal */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.65 0.18 40); /* Warm Amber */
+  --secondary: oklch(0.68 0.2 50); /* Warm Amber */
   --secondary-foreground: oklch(1 0 0);
-  --accent: oklch(0.7 0.25 170); /* Bright Cyan */
-  --accent-foreground: oklch(0.15 0.01 200);
+  --accent: oklch(0.72 0.26 170); /* Bright Cyan */
+  --accent-foreground: oklch(0.12 0.02 200);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.94 0.01 200);
-  --input: oklch(0.99 0.01 200);
-  --ring: oklch(0.55 0.2 180);
-  --chart-1: oklch(0.55 0.2 180);
-  --chart-2: oklch(0.65 0.18 40);
-  --chart-3: oklch(0.7 0.25 170);
-  --chart-4: oklch(0.6 0.22 190);
-  --chart-5: oklch(0.62 0.2 50);
+  --border: oklch(0.93 0.01 200);
+  --input: oklch(0.98 0.01 200);
+  --ring: oklch(0.58 0.22 185);
+  --chart-1: oklch(0.58 0.22 185);
+  --chart-2: oklch(0.68 0.2 50);
+  --chart-3: oklch(0.72 0.26 170);
+  --chart-4: oklch(0.62 0.24 190);
+  --chart-5: oklch(0.65 0.22 55);
   --radius: 0.75rem;
-  --sidebar: oklch(0.96 0 0);
-  --sidebar-foreground: oklch(0.15 0.01 200);
-  --sidebar-primary: oklch(0.55 0.2 180);
+  --sidebar: oklch(0.97 0 0);
+  --sidebar-foreground: oklch(0.15 0.02 200);
+  --sidebar-primary: oklch(0.58 0.22 185);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.7 0.25 170);
-  --sidebar-accent-foreground: oklch(0.15 0.01 200);
-  --sidebar-border: oklch(0.94 0.01 200);
-  --sidebar-ring: oklch(0.55 0.2 180);
+  --sidebar-accent: oklch(0.72 0.26 170);
+  --sidebar-accent-foreground: oklch(0.15 0.02 200);
+  --sidebar-border: oklch(0.93 0.01 200);
+  --sidebar-ring: oklch(0.58 0.22 185);
 }
 
 .dark {
-  --background: oklch(0.1 0.01 200);
-  --foreground: oklch(0.95 0.01 200);
-  --card: oklch(0.16 0.01 200);
-  --card-foreground: oklch(0.95 0.01 200);
-  --popover: oklch(0.14 0.01 200);
-  --popover-foreground: oklch(0.95 0.01 200);
-  --primary: oklch(0.65 0.22 180);
-  --primary-foreground: oklch(0.1 0.01 200);
-  --secondary: oklch(0.72 0.2 45);
-  --secondary-foreground: oklch(0.1 0.01 200);
-  --accent: oklch(0.75 0.28 170);
-  --accent-foreground: oklch(0.1 0.01 200);
+  --background: oklch(0.09 0.01 200);
+  --foreground: oklch(0.96 0.01 200);
+  --card: oklch(0.14 0.02 200);
+  --card-foreground: oklch(0.96 0.01 200);
+  --popover: oklch(0.12 0.01 200);
+  --popover-foreground: oklch(0.96 0.01 200);
+  --primary: oklch(0.68 0.25 185);
+  --primary-foreground: oklch(0.09 0.01 200);
+  --secondary: oklch(0.75 0.22 50);
+  --secondary-foreground: oklch(0.09 0.01 200);
+  --accent: oklch(0.78 0.29 170);
+  --accent-foreground: oklch(0.09 0.01 200);
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.25 0.01 200);
-  --input: oklch(0.2 0.01 200);
-  --ring: oklch(0.65 0.22 180);
-  --chart-1: oklch(0.65 0.22 180);
-  --chart-2: oklch(0.72 0.2 45);
-  --chart-3: oklch(0.75 0.28 170);
-  --chart-4: oklch(0.68 0.24 190);
-  --chart-5: oklch(0.7 0.22 50);
-  --sidebar: oklch(0.14 0.01 200);
-  --sidebar-foreground: oklch(0.95 0.01 200);
-  --sidebar-primary: oklch(0.65 0.22 180);
-  --sidebar-primary-foreground: oklch(0.1 0.01 200);
-  --sidebar-accent: oklch(0.75 0.28 170);
-  --sidebar-accent-foreground: oklch(0.95 0.01 200);
-  --sidebar-border: oklch(0.25 0.01 200);
-  --sidebar-ring: oklch(0.65 0.22 180);
+  --border: oklch(0.22 0.01 200);
+  --input: oklch(0.18 0.01 200);
+  --ring: oklch(0.68 0.25 185);
+  --chart-1: oklch(0.68 0.25 185);
+  --chart-2: oklch(0.75 0.22 50);
+  --chart-3: oklch(0.78 0.29 170);
+  --chart-4: oklch(0.7 0.26 190);
+  --chart-5: oklch(0.72 0.24 55);
+  --sidebar: oklch(0.12 0.01 200);
+  --sidebar-foreground: oklch(0.96 0.01 200);
+  --sidebar-primary: oklch(0.68 0.25 185);
+  --sidebar-primary-foreground: oklch(0.09 0.01 200);
+  --sidebar-accent: oklch(0.78 0.29 170);
+  --sidebar-accent-foreground: oklch(0.96 0.01 200);
+  --sidebar-border: oklch(0.22 0.01 200);
+  --sidebar-ring: oklch(0.68 0.25 185);
 }
 
 @theme inline {
@@ -122,14 +122,18 @@
 }
 
 @layer utilities {
-  /* Vibrant modern fintech utilities with depth and dynamic effects */
+  /* Premium Modern Fintech - Glassmorphism, Depth & Animations */
 
   .glass-morphism {
-    @apply backdrop-blur-xl bg-white/50 dark:bg-slate-900/40 border border-white/40 dark:border-white/10;
+    @apply backdrop-blur-xl bg-white/40 dark:bg-slate-900/40 border border-white/60 dark:border-white/10 shadow-sm;
+  }
+
+  .glass-card {
+    @apply backdrop-blur-md bg-white/30 dark:bg-slate-900/30 border border-white/50 dark:border-white/10 rounded-2xl;
   }
 
   .gradient-hero {
-    @apply bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 dark:from-teal-950/30 dark:via-cyan-950/30 dark:to-blue-950/30;
+    @apply bg-gradient-to-br from-slate-50 via-teal-50 to-cyan-50 dark:from-slate-950/40 dark:via-teal-950/40 dark:to-cyan-950/40;
   }
 
   .gradient-accent {
@@ -140,6 +144,10 @@
     @apply bg-gradient-to-r from-amber-400 to-orange-500;
   }
 
+  .gradient-premium {
+    @apply bg-gradient-to-br from-teal-600 via-cyan-500 to-blue-600;
+  }
+
   .glow-primary {
     @apply shadow-lg shadow-teal-500/30 dark:shadow-teal-400/20;
   }
@@ -148,12 +156,24 @@
     @apply shadow-lg shadow-amber-500/30 dark:shadow-amber-400/20;
   }
 
+  .glow-premium {
+    @apply shadow-2xl shadow-teal-500/40 dark:shadow-teal-400/30;
+  }
+
   .card-elevated {
-    @apply bg-card border border-border rounded-2xl p-6 shadow-md transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 hover:border-primary/50;
+    @apply bg-card border border-border rounded-2xl p-6 shadow-md transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 hover:border-primary/50;
+  }
+
+  .card-premium {
+    @apply bg-gradient-to-br from-card to-slate-50 dark:from-card dark:to-slate-900/30 border border-border rounded-2xl p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-1 hover:border-primary/50;
   }
 
   .button-vibrant {
     @apply px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-teal-500/40;
+  }
+
+  .button-premium {
+    @apply px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/50;
   }
 
   .button-warm {
@@ -176,12 +196,24 @@
     animation: fadeInUp 0.6s ease-out;
   }
 
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
   .slide-left {
     animation: slideLeft 0.6s ease-out;
   }
 
+  .slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
   .bounce-in {
     animation: bounceIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .float {
+    animation: float 3s ease-in-out infinite;
   }
 
   @keyframes fadeInDown {
@@ -206,6 +238,15 @@
     }
   }
 
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   @keyframes slideLeft {
     from {
       opacity: 0;
@@ -214,6 +255,17 @@
     to {
       opacity: 1;
       transform: translateX(0);
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 
@@ -226,5 +278,28 @@
       opacity: 1;
       transform: scale(1);
     }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  /* Grid pattern background - FIXED */
+  .grid-pattern {
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+  }
+
+  .dark .grid-pattern {
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 2rem 2rem;
   }
 }
