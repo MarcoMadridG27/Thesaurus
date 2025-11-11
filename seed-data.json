@@ -1,0 +1,50 @@
+{
+  "invoices": [
+    {
+      "id": "INV-001",
+      "supplier": "Proveedor A",
+      "date": "2024-01-15",
+      "amount": 1250,
+      "category": "Servicios",
+      "status": "procesado"
+    },
+    {
+      "id": "INV-002",
+      "supplier": "Proveedor B",
+      "date": "2024-01-14",
+      "amount": 850.5,
+      "category": "Suministros",
+      "status": "procesado"
+    },
+    {
+      "id": "INV-003",
+      "supplier": "Proveedor C",
+      "date": "2024-01-13",
+      "amount": 2100,
+      "category": "Servicios",
+      "status": "pendiente"
+    }
+  ],
+  "suppliers": [
+    {
+      "id": 1,
+      "name": "Proveedor A",
+      "email": "contact@proveedora.com",
+      "phone": "+34 612 345 678",
+      "city": "Madrid",
+      "totalInvoices": 8,
+      "totalSpent": 12450,
+      "status": "activo"
+    },
+    {
+      "id": 2,
+      "name": "Proveedor B",
+      "email": "info@proveedorb.com",
+      "phone": "+34 623 456 789",
+      "city": "Barcelona",
+      "totalInvoices": 5,
+      "totalSpent": 8200,
+      "status": "activo"
+    }
+  ]
+}
