@@ -18,7 +18,9 @@ yarn-error.log*
 
 # env files
 .env*
-
+.npm
+.npm-cache/
+UsersASUSAppDataLocalnpm-cache/
 # vercel
 .vercel
 

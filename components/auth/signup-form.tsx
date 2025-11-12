@@ -3,31 +3,105 @@
 import type React from "react"
 import Link from "next/link"
 import { useState } from "react"
-import { Eye, EyeOff, Mail, Lock, User, Building2, Check, ArrowRight } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Eye, EyeOff, Mail, Lock, FileText, Check, ArrowRight, Loader2 } from "lucide-react"
+import { signUpUser, validateRuc, type RucData } from "@/lib/api"
 
 export function SignUpForm() {
+  const router = useRouter()
   const [formData, setFormData] = useState({
-    name: "",
+    ruc: "",
     email: "",
-    company: "",
     password: "",
     confirmPassword: "",
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isValidatingRuc, setIsValidatingRuc] = useState(false)
   const [agreedTerms, setAgreedTerms] = useState(false)
+  const [error, setError] = useState("")
+  const [rucData, setRucData] = useState<RucData | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Si cambia el RUC, limpiar los datos validados
+    if (name === 'ruc' && rucData) {
+      setRucData(null)
+    }
+  }
+
+  const handleValidateRuc = async () => {
+    if (formData.ruc.length !== 11) {
+      setError("El RUC debe tener 11 dígitos")
+      return
+    }
+
+    setIsValidatingRuc(true)
+    setError("")
+
+    try {
+      const result = await validateRuc(formData.ruc)
+      
+      if (result.success && result.data) {
+        setRucData(result.data)
+        setError("")
+      } else {
+        setError(result.error || "Error al validar RUC")
+        setRucData(null)
+      }
+    } catch (err: unknown) {
+      console.error("Error al validar RUC:", err)
+      setError("Error al validar RUC. Por favor, intenta de nuevo.")
+      setRucData(null)
+    } finally {
+      setIsValidatingRuc(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      return
+    }
+
+    // Validate RUC has been validated
+    if (!rucData) {
+      setError("Por favor, valida el RUC primero")
+      return
+    }
+
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
+
+    try {
+      const result = await signUpUser({
+        ruc: formData.ruc,
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (result.success) {
+        // Save token if provided
+        if (result.data?.access_token) {
+          localStorage.setItem("authToken", result.data.access_token)
+        }
+        // Redirect to dashboard
+        router.push("/dashboard")
+      } else {
+        setError(result.error || "Error al crear la cuenta")
+      }
+    } catch (err: unknown) {
+      console.error("Error durante el registro:", err)
+      setError("Error de conexión. Por favor, intenta de nuevo.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const passwordsMatch = formData.password === formData.confirmPassword && formData.password !== ""
@@ -40,82 +114,103 @@ export function SignUpForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Name Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.1s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            Nombre completo
-          </label>
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
-            <input
-              type="text"
-              name="name"
-              placeholder="Juan Pérez"
-              value={formData.name}
-              onChange={handleChange}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
-              required
-            />
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+            {error}
           </div>
+        )}
+
+        {/* Success Message - RUC Validated */}
+        {rucData && (
+          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+            <p className="font-semibold">{rucData.razon_social}</p>
+            {rucData.nombre_comercial && <p className="text-xs">{rucData.nombre_comercial}</p>}
+            <p className="text-xs mt-1">Estado: {rucData.estado} | Condición: {rucData.condicion}</p>
+          </div>
+        )}
+
+        {/* RUC Field */}
+        <div className="group bounce-in" style={{ animationDelay: "0.1s" }}>
+          <label htmlFor="ruc" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+            RUC (Registro Único de Contribuyentes)
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
+              <input
+                id="ruc"
+                type="text"
+                name="ruc"
+                placeholder="20123456789"
+                value={formData.ruc}
+                onChange={handleChange}
+                maxLength={11}
+                className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
+                required
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleValidateRuc}
+              disabled={isValidatingRuc || formData.ruc.length !== 11}
+              className="px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium whitespace-nowrap flex items-center gap-2"
+            >
+              {isValidatingRuc ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Validando...</span>
+                </>
+              ) : (
+                'Validar'
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-foreground/60 mt-1">El RUC debe tener 11 dígitos y será validado con SUNAT</p>
         </div>
 
         {/* Email Field */}
         <div className="group bounce-in" style={{ animationDelay: "0.15s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+          <label htmlFor="email" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Correo electrónico
           </label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
+              id="email"
               type="email"
               name="email"
               placeholder="juan@empresa.com"
               value={formData.email}
               onChange={handleChange}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
+              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
               required
             />
           </div>
         </div>
 
-        {/* Company Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.2s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            Empresa
-          </label>
-          <div className="relative">
-            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
-            <input
-              type="text"
-              name="company"
-              placeholder="Mi Empresa LTDA"
-              value={formData.company}
-              onChange={handleChange}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
-            />
-          </div>
-        </div>
-
         {/* Password Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.25s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+        <div className="group bounce-in" style={{ animationDelay: "0.2s" }}>
+          <label htmlFor="password" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Contraseña
           </label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
+              id="password"
               type={showPassword ? "text" : "password"}
               name="password"
               placeholder="••••••••"
               value={formData.password}
               onChange={handleChange}
-              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
+              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -123,19 +218,20 @@ export function SignUpForm() {
         </div>
 
         {/* Confirm Password Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.3s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+        <div className="group bounce-in" style={{ animationDelay: "0.25s" }}>
+          <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Confirmar contraseña
           </label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
+              id="confirmPassword"
               type={showConfirm ? "text" : "password"}
               name="confirmPassword"
               placeholder="••••••••"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className={`input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-2 transition-all duration-200 focus:scale-[1.01] ${
+              className={`input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-2 transition-all duration-200 focus:scale-[1.01] text-foreground ${
                 formData.confirmPassword &&
                 (passwordsMatch
                   ? "border-emerald-500/50 focus:border-emerald-400"
@@ -147,6 +243,7 @@ export function SignUpForm() {
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
               className="absolute right-12 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
+              aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -159,13 +256,13 @@ export function SignUpForm() {
         {/* Terms Checkbox */}
         <label
           className="flex items-start gap-3 cursor-pointer group/terms bounce-in"
-          style={{ animationDelay: "0.35s" }}
+          style={{ animationDelay: "0.3s" }}
         >
           <input
             type="checkbox"
             checked={agreedTerms}
             onChange={(e) => setAgreedTerms(e.target.checked)}
-            className="w-4 h-4 rounded border border-border checked:bg-primary checked:border-primary mt-1 flex-shrink-0 group-hover/terms:border-primary/60 transition-all duration-200"
+            className="w-4 h-4 rounded border border-border checked:bg-primary checked:border-primary mt-1 shrink-0 group-hover/terms:border-primary/60 transition-all duration-200"
             required
           />
           <span className="text-foreground/70 text-sm">
@@ -182,9 +279,9 @@ export function SignUpForm() {
 
         <button
           type="submit"
-          disabled={isLoading || !agreedTerms}
+          disabled={isLoading || !agreedTerms || !rucData}
           className="button-premium w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 bounce-in"
-          style={{ animationDelay: "0.4s" }}
+          style={{ animationDelay: "0.35s" }}
         >
           {isLoading ? (
             <>
@@ -201,7 +298,7 @@ export function SignUpForm() {
       </form>
 
       {/* Sign In Link */}
-      <p className="text-center text-foreground/70 bounce-in" style={{ animationDelay: "0.45s" }}>
+      <p className="text-center text-foreground/70 bounce-in" style={{ animationDelay: "0.4s" }}>
         ¿Ya tienes cuenta?{" "}
         <Link
           href="/auth/signin"

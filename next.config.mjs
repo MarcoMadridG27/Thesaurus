@@ -1,5 +1,5 @@
 const nextConfig = {
-  reactCompiler: true,
+  //reactCompiler: true,
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -3,19 +3,42 @@
 import type React from "react"
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react"
+import { loginUser } from "@/lib/api"
 
 export function SignInForm() {
+  const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
+    setError("")
+
+    try {
+      const result = await loginUser({ email, password })
+      
+      if (result.success) {
+        // Save token if provided
+        if (result.data?.access_token) {
+          localStorage.setItem("authToken", result.data.access_token)
+        }
+        // Redirect to dashboard
+        router.push("/dashboard")
+      } else {
+        setError(result.error || "Error al iniciar sesión")
+      }
+    } catch (err: unknown) {
+      console.error("Error durante el login:", err)
+      setError("Error de conexión. Por favor, intenta de nuevo.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -28,19 +51,27 @@ export function SignInForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
         {/* Email Field */}
         <div className="group bounce-in" style={{ animationDelay: "0.1s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+          <label htmlFor="email" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Correo electrónico
           </label>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
+              id="email"
               type="email"
               placeholder="tu@empresa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
+              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
               required
             />
           </div>
@@ -48,23 +79,25 @@ export function SignInForm() {
 
         {/* Password Field */}
         <div className="group bounce-in" style={{ animationDelay: "0.2s" }}>
-          <label className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
+          <label htmlFor="password" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
             Contraseña
           </label>
           <div className="relative">
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
+              id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200"
+              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -117,10 +150,11 @@ export function SignInForm() {
 
       {/* Google Button */}
       <button
-        className="w-full py-3 flex items-center justify-center gap-2 border-2 border-border rounded-xl hover:bg-primary/5 hover:border-primary/50 transition-all duration-300 font-semibold text-foreground hover:border-primary group bounce-in"
+        type="button"
+        className="w-full py-3 flex items-center justify-center gap-2 border-2 border-border rounded-xl hover:bg-primary/5 hover:border-primary transition-all duration-300 font-semibold text-foreground group bounce-in"
         style={{ animationDelay: "0.6s" }}
       >
-        <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" viewBox="0 0 24 24">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             fill="#4285F4"
