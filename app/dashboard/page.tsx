@@ -7,21 +7,95 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { AISummaryCard } from "@/components/dashboard/ai-summary-card"
 import { RecentInvoices } from "@/components/dashboard/recent-invoices"
 import { ExpenseChart } from "@/components/dashboard/expense-chart"
+import { invoiceStore } from "@/lib/store"
+import { useState, useEffect } from "react"
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState(invoiceStore.getStats())
+  const [summaryData, setSummaryData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
+  const loadSummary = async () => {
+    try {
+      const { getInsightsSummary } = await import('@/lib/api')
+      const result = await getInsightsSummary('month')
+      
+      if (result.success && result.data) {
+        setSummaryData(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading summary:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    setMounted(true)
+    console.log('🏠 [Dashboard] Component mounted')
+    
+    const unsubscribe = invoiceStore.subscribe(() => {
+      console.log('🔔 [Dashboard] Store updated')
+      const newStats = invoiceStore.getStats()
+      console.log('🏠 [Dashboard] New stats:', newStats)
+      setStats(newStats)
+      // Reload summary when invoices change
+      loadSummary()
+    })
+    
+    // Initial load
+    setStats(invoiceStore.getStats())
+    loadSummary()
+    
+    return unsubscribe
+  }, [])
+  
+  console.log('🎨 [Dashboard] Rendering with stats:', stats)
+
+  if (!mounted) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="grid md:grid-cols-4 gap-4">
+          <StatCard label="Gasto total (mes)" value={`PEN 0.00`} change="Cargando..." icon={<BarChart3 className="w-5 h-5" />} />
+          <StatCard label="Facturas procesadas" value="0" change="Total" icon={<FileText className="w-5 h-5" />} />
+          <StatCard label="Proveedores activos" value="0" change="Registrados" icon={<TrendingUp className="w-5 h-5" />} />
+          <StatCard label="Gasto total" value={`PEN 0.00`} change="Histórico" icon={<AlertCircle className="w-5 h-5" />} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6 space-y-6">
       {/* Stats */}
       <div className="grid md:grid-cols-4 gap-4">
-        <StatCard label="Gasto total (mes)" value="$12,450" change="+2.1%" icon={<BarChart3 className="w-5 h-5" />} />
-        <StatCard label="Facturas procesadas" value="48" change="+5" icon={<FileText className="w-5 h-5" />} />
-        <StatCard label="Proveedores activos" value="12" change="Estable" icon={<TrendingUp className="w-5 h-5" />} />
-        <StatCard
-          label="Ahorros detectados"
-          value="$2,340"
-          change="Este mes"
-          icon={<AlertCircle className="w-5 h-5" />}
-        />
+        {loading || !summaryData?.quick_stats ? (
+          <>
+            <StatCard label="Gasto total (mes)" value={`PEN ${stats.monthlySpent.toFixed(2)}`} change="Cargando..." icon={<BarChart3 className="w-5 h-5" />} />
+            <StatCard label="Facturas procesadas" value={stats.invoiceCount.toString()} change="Total" icon={<FileText className="w-5 h-5" />} />
+            <StatCard label="Proveedores activos" value={stats.supplierCount.toString()} change="Registrados" icon={<TrendingUp className="w-5 h-5" />} />
+            <StatCard label="Gasto total" value={`PEN ${stats.totalSpent.toFixed(2)}`} change="Histórico" icon={<AlertCircle className="w-5 h-5" />} />
+          </>
+        ) : (
+          summaryData.quick_stats.map((stat: any, idx: number) => {
+            const icons = [
+              <BarChart3 key="icon1" className="w-5 h-5" />,
+              <FileText key="icon2" className="w-5 h-5" />,
+              <TrendingUp key="icon3" className="w-5 h-5" />,
+              <AlertCircle key="icon4" className="w-5 h-5" />
+            ]
+            return (
+              <StatCard
+                key={stat.label}
+                label={stat.label}
+                value={stat.currency ? `${stat.currency} ${stat.value}` : stat.value}
+                change={stat.change}
+                icon={icons[idx] || icons[0]}
+              />
+            )
+          })
+        )}
       </div>
 
       {/* Main content */}

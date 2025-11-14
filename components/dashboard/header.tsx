@@ -10,13 +10,13 @@ export function Header() {
     <header className="border-b border-border bg-surface sticky top-0 z-20 md:ml-0">
       <div className="flex items-center justify-between h-16 px-6 gap-4">
         <div className="flex-1 relative hidden sm:block max-w-md">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-text-secondary" />
-          <Input placeholder="Buscar..." className="pl-10 bg-background" />
+          <Search className="absolute left-3 top-3 w-4 h-4 text-foreground/60" />
+          <Input placeholder="Buscar..." className="pl-10 bg-card" />
         </div>
 
         <div className="flex items-center gap-4 ml-auto">
           <Button variant="ghost" size="icon">
-            <Bell className="w-5 h-5 text-text-secondary" />
+            <Bell className="w-5 h-5 text-foreground/60" />
           </Button>
 
           <DropdownMenu>

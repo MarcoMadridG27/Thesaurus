@@ -5,39 +5,30 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
-const mockInvoices = [
-  {
-    id: "INV-001",
-    supplier: "Proveedor A",
-    date: "2024-01-15",
-    amount: "$1,250.00",
-    status: "procesado",
-  },
-  {
-    id: "INV-002",
-    supplier: "Proveedor B",
-    date: "2024-01-14",
-    amount: "$850.50",
-    status: "procesado",
-  },
-  {
-    id: "INV-003",
-    supplier: "Proveedor C",
-    date: "2024-01-13",
-    amount: "$2,100.00",
-    status: "pendiente",
-  },
-  {
-    id: "INV-004",
-    supplier: "Proveedor A",
-    date: "2024-01-12",
-    amount: "$450.75",
-    status: "procesado",
-  },
-]
+import { invoiceStore } from "@/lib/store"
+import { useState, useEffect } from "react"
 
 export function InvoiceTable() {
+  const [invoices, setInvoices] = useState(invoiceStore.getInvoices())
+
+  useEffect(() => {
+    console.log('📊 [InvoiceTable] Component mounted, initial invoices:', invoices.length)
+    
+    const unsubscribe = invoiceStore.subscribe(() => {
+      console.log('🔔 [InvoiceTable] Store updated, fetching new invoices')
+      const newInvoices = invoiceStore.getInvoices()
+      console.log('📊 [InvoiceTable] Setting invoices:', newInvoices.length)
+      setInvoices(newInvoices)
+    })
+    
+    // Force initial fetch
+    setInvoices(invoiceStore.getInvoices())
+    
+    return unsubscribe
+  }, [])
+  
+  console.log('🎨 [InvoiceTable] Rendering with', invoices.length, 'invoices')
+  
   return (
     <div className="bg-surface rounded-lg border border-border overflow-hidden">
       <Table>
@@ -52,15 +43,22 @@ export function InvoiceTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {mockInvoices.map((invoice) => (
+          {invoices.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center text-foreground/50 py-8">
+                No hay facturas procesadas. Sube una factura para comenzar.
+              </TableCell>
+            </TableRow>
+          ) : (
+            invoices.map((invoice) => (
             <TableRow key={invoice.id}>
-              <TableCell className="font-medium">{invoice.id}</TableCell>
-              <TableCell>{invoice.supplier}</TableCell>
-              <TableCell>{invoice.date}</TableCell>
-              <TableCell>{invoice.amount}</TableCell>
+              <TableCell className="font-medium">{invoice.numero}</TableCell>
+              <TableCell>{invoice.proveedor}</TableCell>
+              <TableCell>{invoice.fecha}</TableCell>
+              <TableCell>{invoice.moneda} {invoice.total.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge variant={invoice.status === "procesado" ? "default" : "secondary"}>
-                  {invoice.status === "procesado" ? "Procesado" : "Pendiente"}
+                <Badge variant="default">
+                  {invoice.estado}
                 </Badge>
               </TableCell>
               <TableCell>
@@ -78,7 +76,8 @@ export function InvoiceTable() {
                 </DropdownMenu>
               </TableCell>
             </TableRow>
-          ))}
+          ))
+          )}
         </TableBody>
       </Table>
     </div>

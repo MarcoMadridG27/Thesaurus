@@ -19,6 +19,51 @@ export default function InvoicesPage() {
       {/* Upload Section */}
       <InvoiceUploadArea />
 
+      {/* Debug buttons - Remove in production */}
+      <div className="flex gap-2 p-4 bg-muted/50 rounded-lg border border-border">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            const testInvoice = {
+              invoice_id: 'TEST-' + Date.now(),
+              doc_kind: 'factura',
+              data: {
+                provider: {
+                  ruc: '20123456789',
+                  razon_social: 'EMPRESA DE PRUEBA SAC'
+                },
+                invoice: {
+                  numero: 'F001-00001',
+                  fecha: new Date().toISOString().split('T')[0],
+                  moneda: 'PEN',
+                  subtotal: '100.00',
+                  igv: '18.00',
+                  total: '118.00'
+                },
+                items: []
+              }
+            }
+            const { invoiceStore } = require('@/lib/store')
+            invoiceStore.addInvoice(testInvoice)
+            console.log('✅ Factura de prueba agregada')
+          }}
+        >
+          🧪 Agregar Factura de Prueba
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            const { invoiceStore } = require('@/lib/store')
+            console.log('📊 Current invoices:', invoiceStore.getInvoices())
+            console.log('👥 Current suppliers:', invoiceStore.getSuppliers())
+          }}
+        >
+          🔍 Ver Store en Consola
+        </Button>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">

@@ -1,8 +1,6 @@
 const nextConfig = {
   //reactCompiler: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -16,7 +14,6 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     unoptimized: true,
   },
-  compression: true,
   poweredByHeader: false,
 }
 
