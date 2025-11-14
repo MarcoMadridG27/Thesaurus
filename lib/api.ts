@@ -42,6 +42,9 @@ export interface ApiResponse<T = any> {
 // Login API call
 export async function loginUser(credentials: LoginCredentials): Promise<ApiResponse> {
   try {
+    console.log("Llamando a API login:", `${API_CONFIG.LOGIN_URL}login`)
+    console.log("Credenciales:", { email: credentials.email, password: '***' })
+    
     const response = await fetch(`${API_CONFIG.LOGIN_URL}login`, {
       method: 'POST',
       headers: {
@@ -50,17 +53,22 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
       body: JSON.stringify(credentials),
     })
 
+    console.log("Respuesta del servidor:", response.status, response.statusText)
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      console.error("Error del servidor:", errorData)
       throw new Error(errorData.detail || errorData.message || `Error: ${response.status}`)
     }
 
     const data = await response.json()
+    console.log("Data recibida del servidor:", data)
     return {
       success: true,
       data,
     }
   } catch (error) {
+    console.error("Error en loginUser:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al iniciar sesión',
@@ -71,7 +79,7 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
 // Validate RUC (Peruvian tax ID)
 export async function validateRuc(ruc: string): Promise<ApiResponse<RucData>> {
   try {
-    const response = await fetch(`${API_CONFIG.LOGIN_URL}validate-ruc`, {
+    const response = await fetch(`${API_CONFIG.LOGIN_URL}auth/validate-ruc`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

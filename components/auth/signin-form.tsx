@@ -20,17 +20,29 @@ export function SignInForm() {
     setIsLoading(true)
     setError("")
 
+    console.log("=== Iniciando proceso de login ===")
+    console.log("Email:", email)
+
     try {
       const result = await loginUser({ email, password })
+      console.log("Resultado del login:", result)
       
       if (result.success) {
+        console.log("Login exitoso, data recibida:", result.data)
+        
         // Save token if provided
         if (result.data?.access_token) {
+          console.log("Guardando access_token en localStorage")
           localStorage.setItem("authToken", result.data.access_token)
+          // Also set cookie for middleware
+          document.cookie = `auth-token=${result.data.access_token}; path=/; max-age=86400`
         }
+        
+        console.log("Redirigiendo a /dashboard...")
         // Redirect to dashboard
         router.push("/dashboard")
       } else {
+        console.error("Login falló:", result.error)
         setError(result.error || "Error al iniciar sesión")
       }
     } catch (err: unknown) {
@@ -38,6 +50,7 @@ export function SignInForm() {
       setError("Error de conexión. Por favor, intenta de nuevo.")
     } finally {
       setIsLoading(false)
+      console.log("=== Fin del proceso de login ===")
     }
   }
 
