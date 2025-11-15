@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Upload, File, CheckCircle2, XCircle } from "lucide-react"
 import { useState } from "react"
 import { processInvoices } from "@/lib/api"
+import { invoiceStore } from "@/lib/store"
 
 interface FileWithStatus extends File {
   status?: 'pending' | 'processing' | 'success' | 'error'
@@ -52,13 +53,37 @@ export function InvoiceUploadArea() {
     setFiles(prev => prev.map(f => ({ ...f, status: 'processing' as const })))
 
     try {
-      const result = await processInvoices(files)
+      // Obtener tenant_id (RUC) del usuario logueado
+      const userData = localStorage.getItem('userData')
+      let tenantId = 'default-tenant'
+      
+      if (userData) {
+        try {
+          const user = JSON.parse(userData)
+          tenantId = user.ruc || 'default-tenant'
+        } catch (error) {
+          console.error('Error al obtener RUC del usuario:', error)
+        }
+      }
+
+      const result = await processInvoices(files, tenantId, 'factura')
       
       if (result.success) {
+        // Agregar cada factura procesada al store
+        if (result.data?.processed && Array.isArray(result.data.processed)) {
+          console.log('📥 [Upload] Agregando', result.data.processed.length, 'facturas al store')
+          for (const item of result.data.processed) {
+            if (item.data) {
+              await invoiceStore.addInvoice(item.data)
+              console.log('✅ [Upload] Factura agregada:', item.file)
+            }
+          }
+        }
+        
         // Mark all files as success
         setFiles(prev => prev.map(f => ({ ...f, status: 'success' as const })))
         
-        // Clear files after successful upload (optional)
+        // Clear files after successful upload
         setTimeout(() => {
           setFiles([])
         }, 2000)

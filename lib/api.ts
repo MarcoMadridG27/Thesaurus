@@ -183,26 +183,42 @@ export async function signUpUser(userData: SignUpData): Promise<ApiResponse> {
   }
 }
 
-// OCR API call for invoice processing
-export async function processInvoice(file: File): Promise<ApiResponse> {
+// OCR API call for invoice processing (flujo de 2 pasos)
+export async function processInvoice(file: File, tenantId: string = 'default-tenant', docKind: 'boleta' | 'factura' = 'factura'): Promise<ApiResponse> {
   try {
+    // Paso 1: Subir documento
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('tenant_id', tenantId)
+    formData.append('doc_kind', docKind)
 
-    const response = await fetch(`${API_CONFIG.OCR_URL}process`, {
+    const uploadResponse = await fetch(`${API_CONFIG.OCR_URL}documents/upload`, {
       method: 'POST',
       body: formData,
     })
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `Error: ${response.status}`)
+    if (!uploadResponse.ok) {
+      const errorData = await uploadResponse.json().catch(() => ({}))
+      throw new Error(errorData.message || `Error al subir: ${uploadResponse.status}`)
     }
 
-    const data = await response.json()
+    const uploadData = await uploadResponse.json()
+    const docId = uploadData.id
+
+    // Paso 2: Procesar OCR
+    const ocrResponse = await fetch(`${API_CONFIG.OCR_URL}ocr/process/${docId}`, {
+      method: 'POST',
+    })
+
+    if (!ocrResponse.ok) {
+      const errorData = await ocrResponse.json().catch(() => ({}))
+      throw new Error(errorData.message || `Error al procesar: ${ocrResponse.status}`)
+    }
+
+    const ocrData = await ocrResponse.json()
     return {
       success: true,
-      data,
+      data: ocrData,
     }
   } catch (error) {
     return {
@@ -212,28 +228,62 @@ export async function processInvoice(file: File): Promise<ApiResponse> {
   }
 }
 
-// OCR API call for multiple invoices
-export async function processInvoices(files: File[]): Promise<ApiResponse> {
+// OCR API call for multiple invoices (procesa cada uno con flujo de 2 pasos)
+export async function processInvoices(files: File[], tenantId: string = 'default-tenant', docKind: 'boleta' | 'factura' = 'factura'): Promise<ApiResponse> {
   try {
-    const formData = new FormData()
+    const results = []
+    const errors = []
+
+    // Procesar cada archivo individualmente con flujo de 2 pasos
     for (const file of files) {
-      formData.append('files', file)
+      try {
+        // Paso 1: Subir documento
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('tenant_id', tenantId)
+        formData.append('doc_kind', docKind)
+
+        const uploadResponse = await fetch(`${API_CONFIG.OCR_URL}documents/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}))
+          errors.push({ file: file.name, error: errorData.message || `Error al subir: ${uploadResponse.status}` })
+          continue
+        }
+
+        const uploadData = await uploadResponse.json()
+        const docId = uploadData.id
+
+        // Paso 2: Procesar OCR
+        const ocrResponse = await fetch(`${API_CONFIG.OCR_URL}ocr/process/${docId}`, {
+          method: 'POST',
+        })
+
+        if (!ocrResponse.ok) {
+          const errorData = await ocrResponse.json().catch(() => ({}))
+          errors.push({ file: file.name, error: errorData.message || `Error al procesar: ${ocrResponse.status}` })
+          continue
+        }
+
+        const ocrData = await ocrResponse.json()
+        results.push({ file: file.name, data: ocrData })
+      } catch (err) {
+        errors.push({ file: file.name, error: err instanceof Error ? err.message : 'Error desconocido' })
+      }
     }
 
-    const response = await fetch(`${API_CONFIG.OCR_URL}process-batch`, {
-      method: 'POST',
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `Error: ${response.status}`)
-    }
-
-    const data = await response.json()
     return {
-      success: true,
-      data,
+      success: errors.length === 0,
+      data: {
+        processed: results,
+        errors: errors,
+        total: files.length,
+        success_count: results.length,
+        error_count: errors.length,
+      },
     }
   } catch (error) {
     return {
