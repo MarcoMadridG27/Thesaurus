@@ -51,17 +51,6 @@ export default function InvoicesPage() {
         >
           🧪 Agregar Factura de Prueba
         </Button>
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            const { invoiceStore } = require('@/lib/store')
-            console.log('📊 Current invoices:', invoiceStore.getInvoices())
-            console.log('👥 Current suppliers:', invoiceStore.getSuppliers())
-          }}
-        >
-          🔍 Ver Store en Consola
-        </Button>
       </div>
 
       {/* Filters */}

@@ -4,7 +4,7 @@ import type React from "react"
 import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, FileText, Check, ArrowRight, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Check, ArrowRight, Loader2 } from "lucide-react"
 import { signUpUser, validateRuc, type RucData } from "@/lib/api"
 
 export function SignUpForm() {
@@ -22,6 +22,10 @@ export function SignUpForm() {
   const [agreedTerms, setAgreedTerms] = useState(false)
   const [error, setError] = useState("")
   const [rucData, setRucData] = useState<RucData | null>(null)
+  const [rucFocused, setRucFocused] = useState(false)
+  const [emailFocused, setEmailFocused] = useState(false)
+  const [passwordFocused, setPasswordFocused] = useState(false)
+  const [confirmFocused, setConfirmFocused] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -91,6 +95,14 @@ export function SignUpForm() {
         if (result.data?.access_token) {
           localStorage.setItem("authToken", result.data.access_token)
         }
+        // Save user data including razon_social from validated RUC
+        if (rucData) {
+          localStorage.setItem("userData", JSON.stringify({
+            email: formData.email,
+            ruc: formData.ruc,
+            razon_social: rucData.razon_social
+          }))
+        }
         // Redirect to dashboard
         router.push("/dashboard")
       } else {
@@ -131,24 +143,33 @@ export function SignUpForm() {
         )}
 
         {/* RUC Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.1s" }}>
-          <label htmlFor="ruc" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            RUC (Registro Único de Contribuyentes)
-          </label>
+        <div className="group">
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <FileText className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
               <input
                 id="ruc"
                 type="text"
                 name="ruc"
-                placeholder="20123456789"
+                placeholder=" "
                 value={formData.ruc}
                 onChange={handleChange}
+                onFocus={() => setRucFocused(true)}
+                onBlur={() => setRucFocused(false)}
                 maxLength={11}
-                className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
+                className="input-premium"
                 required
               />
+              <label 
+                htmlFor="ruc"
+                className={`absolute transition-all duration-200 pointer-events-none ${
+                  rucFocused || formData.ruc 
+                    ? 'top-0 left-3 text-xs text-primary' 
+                    : 'top-1/2 -translate-y-1/2 left-3 text-foreground/60'
+                }`}
+                style={{ zIndex: 1 }}
+              >
+                RUC (11 dígitos)
+              </label>
             </div>
             <button
               type="button"
@@ -170,46 +191,64 @@ export function SignUpForm() {
         </div>
 
         {/* Email Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.15s" }}>
-          <label htmlFor="email" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            Correo electrónico
-          </label>
+        <div className="group relative">
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
               id="email"
               type="email"
               name="email"
-              placeholder="juan@empresa.com"
+              placeholder=" "
               value={formData.email}
               onChange={handleChange}
-              className="input-premium w-full pl-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
+              onFocus={() => setEmailFocused(true)}
+              onBlur={() => setEmailFocused(false)}
+              className="input-premium"
               required
             />
+            <label 
+              htmlFor="email"
+              className={`absolute transition-all duration-200 pointer-events-none ${
+                emailFocused || formData.email 
+                  ? 'top-0 left-3 text-xs text-primary' 
+                  : 'top-1/2 -translate-y-1/2 left-3 text-foreground/60'
+              }`}
+              style={{ zIndex: 1 }}
+            >
+              Correo electrónico
+            </label>
           </div>
         </div>
 
         {/* Password Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.2s" }}>
-          <label htmlFor="password" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            Contraseña
-          </label>
+        <div className="group relative">
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
               id="password"
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="••••••••"
+              placeholder=" "
               value={formData.password}
               onChange={handleChange}
-              className="input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-border focus:border-primary focus:scale-[1.01] transition-all duration-200 text-foreground"
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
+              className="input-premium pr-12"
               required
             />
+            <label 
+              htmlFor="password"
+              className={`absolute transition-all duration-200 pointer-events-none ${
+                passwordFocused || formData.password 
+                  ? 'top-0 left-3 text-xs text-primary' 
+                  : 'top-1/2 -translate-y-1/2 left-3 text-foreground/60'
+              }`}
+              style={{ zIndex: 1 }}
+            >
+              Contraseña
+            </label>
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110 z-10"
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -218,45 +257,53 @@ export function SignUpForm() {
         </div>
 
         {/* Confirm Password Field */}
-        <div className="group bounce-in" style={{ animationDelay: "0.25s" }}>
-          <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-2 text-foreground group-focus-within:text-primary transition-colors duration-200">
-            Confirmar contraseña
-          </label>
+        <div className="group relative">
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40 group-focus-within:text-primary transition-colors duration-200 pointer-events-none" />
             <input
               id="confirmPassword"
               type={showConfirm ? "text" : "password"}
               name="confirmPassword"
-              placeholder="••••••••"
+              placeholder=" "
               value={formData.confirmPassword}
               onChange={handleChange}
-              className={`input-premium w-full pl-12 pr-12 bg-white dark:bg-slate-800/50 border-2 transition-all duration-200 focus:scale-[1.01] text-foreground ${
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
+              className={`input-premium pr-12 ${
                 formData.confirmPassword &&
                 (passwordsMatch
-                  ? "border-emerald-500/50 focus:border-emerald-400"
-                  : "border-red-500/50 focus:border-red-400")
+                  ? "border-emerald-500/50! focus:border-emerald-400!"
+                  : "border-red-500/50! focus:border-red-400!")
               }`}
               required
             />
+            <label 
+              htmlFor="confirmPassword"
+              className={`absolute transition-all duration-200 pointer-events-none ${
+                confirmFocused || formData.confirmPassword 
+                  ? 'top-0 left-3 text-xs text-primary' 
+                  : 'top-1/2 -translate-y-1/2 left-3 text-foreground/60'
+              }`}
+              style={{ zIndex: 1 }}
+            >
+              Confirmar contraseña
+            </label>
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute right-12 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110"
+              className="absolute right-12 top-1/2 -translate-y-1/2 text-foreground/40 hover:text-primary transition-colors duration-200 hover:scale-110 z-10"
               aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
             {passwordsMatch && (
-              <Check className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 animate-pulse" />
+              <Check className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400 animate-pulse z-10" />
             )}
           </div>
         </div>
 
         {/* Terms Checkbox */}
         <label
-          className="flex items-start gap-3 cursor-pointer group/terms bounce-in"
-          style={{ animationDelay: "0.3s" }}
+          className="flex items-start gap-3 cursor-pointer group/terms"
         >
           <input
             type="checkbox"
@@ -280,8 +327,7 @@ export function SignUpForm() {
         <button
           type="submit"
           disabled={isLoading || !agreedTerms || !rucData}
-          className="button-premium w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 bounce-in"
-          style={{ animationDelay: "0.35s" }}
+          className="button-premium w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
             <>
@@ -298,7 +344,7 @@ export function SignUpForm() {
       </form>
 
       {/* Sign In Link */}
-      <p className="text-center text-foreground/70 bounce-in" style={{ animationDelay: "0.4s" }}>
+      <p className="text-center text-foreground/70">
         ¿Ya tienes cuenta?{" "}
         <Link
           href="/auth/signin"

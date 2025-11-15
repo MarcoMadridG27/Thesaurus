@@ -34,11 +34,56 @@ export interface RucData {
   distrito?: string
 }
 
+export interface UserProfile {
+  ruc: string
+  razon_social: string
+  nombre_comercial?: string
+  email: string
+  estado: string
+  condicion: string
+  direccion?: string
+  departamento?: string
+  provincia?: string
+  distrito?: string
+  is_active: boolean
+  created_at: string
+  last_login?: string
+}
+
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T
   error?: string
   message?: string
+}
+
+// Get user profile
+export async function getUserProfile(token: string): Promise<ApiResponse<UserProfile>> {
+  try {
+    const response = await fetch(`${API_CONFIG.LOGIN_URL}profile`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || errorData.message || `Error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    return {
+      success: true,
+      data,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al obtener perfil',
+    }
+  }
 }
 
 // Login API call

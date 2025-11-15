@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, FileText, BarChart3, MessageSquare, Users, LogOut, Menu, X } from "lucide-react"
+import { Home, FileText, BarChart3, MessageSquare, Users, Menu, X } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
@@ -69,27 +69,31 @@ export function Sidebar() {
               href={item.href}
               onClick={() => setIsOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                pathname === item.href ? "bg-primary-light text-primary" : "text-text-secondary hover:bg-background",
+                "flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 group",
+                pathname === item.href 
+                  ? "bg-linear-to-r from-teal-500/10 to-cyan-500/10 text-primary shadow-sm scale-105" 
+                  : "text-text-secondary hover:bg-background hover:scale-105 hover:shadow-md",
               )}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className={cn(
+                "w-5 h-5 transition-transform duration-200 group-hover:scale-110",
+                pathname === item.href && "text-primary"
+              )} />
               {item.label}
             </Link>
           ))}
         </nav>
-
-        {/* Logout */}
-        <div className="p-4 border-t border-border">
-          <Button variant="outline" className="w-full justify-start bg-transparent" onClick={() => setIsOpen(false)}>
-            <LogOut className="w-4 h-4 mr-2" />
-            Cerrar sesión
-          </Button>
-        </div>
       </aside>
 
       {/* Mobile Overlay */}
-      {isOpen && <div className="fixed inset-0 bg-black/50 md:hidden z-20" onClick={() => setIsOpen(false)} />}
+      {isOpen && (
+        <button 
+          className="fixed inset-0 bg-black/50 md:hidden z-20" 
+          onClick={() => setIsOpen(false)}
+          aria-label="Cerrar menú"
+          type="button"
+        />
+      )}
     </>
   )
 }

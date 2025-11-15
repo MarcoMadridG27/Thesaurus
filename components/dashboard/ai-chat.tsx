@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react"
 import { Send, Loader2, MessageSquare, Sparkles } from "lucide-react"
 import { createChatSession, type ChatContext } from "@/lib/api"
 import { invoiceStore } from "@/lib/store"
+import { marked } from "marked"
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
@@ -180,37 +181,61 @@ export function AIChat() {
   }
 
   return (
-    <Card className="flex flex-col h-[600px]">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Asistente IA</h3>
-          {isConnected && (
-            <span className="px-2 py-1 text-xs bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">
-              Conectado
-            </span>
+    <Card className="flex flex-col h-[600px] overflow-hidden shadow-xl border-0 bg-linear-to-br from-slate-50 to-teal-50/30 dark:from-slate-900 dark:to-slate-800">
+      {/* Header Moderno */}
+      <div className="p-5 border-b border-border/50 backdrop-blur-sm bg-white/50 dark:bg-slate-900/50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-premium flex items-center justify-center shadow-lg shadow-teal-500/50">
+              <Sparkles className="w-5 h-5 text-white animate-pulse" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 dark:text-slate-100">Asistente IA</h3>
+              <div className="flex items-center gap-2">
+                {isConnected ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-xs text-green-600 dark:text-green-400 font-medium">En línea</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Desconectado</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          {isConnected ? (
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={disconnect}
+              className="hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-all hover:scale-105"
+            >
+              Desconectar
+            </Button>
+          ) : (
+            <Button 
+              size="sm" 
+              onClick={connectWebSocket} 
+              disabled={isLoading}
+              className="bg-gradient-premium hover:scale-105 transition-transform shadow-lg hover:shadow-teal-500/50"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Conectando...
+                </>
+              ) : (
+                <>
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Iniciar
+                </>
+              )}
+            </Button>
           )}
         </div>
-        {isConnected ? (
-          <Button size="sm" variant="outline" onClick={disconnect}>
-            Desconectar
-          </Button>
-        ) : (
-          <Button size="sm" onClick={connectWebSocket} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Conectando...
-              </>
-            ) : (
-              <>
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Iniciar Chat
-              </>
-            )}
-          </Button>
-        )}
       </div>
 
       {/* Messages */}
@@ -224,20 +249,35 @@ export function AIChat() {
         )}
 
         {messages.map((msg, idx) => {
-          let msgClass = 'bg-muted text-foreground'
+          // Convertir Markdown a HTML para mensajes del asistente
+          const htmlContent = msg.role === 'assistant' 
+            ? marked.parse(msg.content, { async: false })
+            : msg.content
+
+          // Determinar estilo del mensaje
+          let bubbleClass = ''
           if (msg.role === 'user') {
-            msgClass = 'bg-primary text-primary-foreground'
+            bubbleClass = 'bg-gradient-premium text-white'
           } else if (msg.role === 'system') {
-            msgClass = 'bg-muted text-muted-foreground text-sm italic'
+            bubbleClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm italic'
+          } else {
+            bubbleClass = 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700'
           }
           
           return (
             <div
               key={`${msg.role}-${msg.timestamp.getTime()}-${idx}`}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}
             >
-              <div className={`max-w-[80%] rounded-lg px-4 py-2 ${msgClass}`}>
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+              <div className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-md ${bubbleClass}`}>
+                {msg.role === 'assistant' ? (
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none prose-ul:my-2 prose-li:my-0 prose-strong:text-primary prose-strong:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: htmlContent }}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                )}
                 <span className="text-xs opacity-70 mt-1 block">
                   {msg.timestamp.toLocaleTimeString('es-PE', {
                     hour: '2-digit',
@@ -250,9 +290,10 @@ export function AIChat() {
         })}
 
         {isLoading && messages.at(-1)?.role !== 'assistant' && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-4 py-2">
+          <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-md border border-slate-200 dark:border-slate-700 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-sm text-slate-600 dark:text-slate-400">Escribiendo...</span>
             </div>
           </div>
         )}
