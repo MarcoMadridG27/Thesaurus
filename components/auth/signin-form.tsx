@@ -17,38 +17,43 @@ export function SignInForm() {
   const [emailFocused, setEmailFocused] = useState(false)
   const [passwordFocused, setPasswordFocused] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
 
-    try {
-      const result = await loginUser({ email, password })
-      
-      if (result.success) {
-        if (result.data?.access_token) {
-          localStorage.setItem("authToken", result.data.access_token)
-        }
-        // Guardar datos del usuario para mostrar en el dashboard
-        if (result.data?.user) {
-          localStorage.setItem("userData", JSON.stringify({
-            email: result.data.user.email,
-            ruc: result.data.user.ruc,
-            razon_social: result.data.user.razon_social
-          }))
-        }
-        // Keep loading state active while redirecting
-        router.push("/dashboard")
-      } else {
-        setError(result.error || "Error al iniciar sesión")
-        setIsLoading(false)
-      }
-    } catch (err: unknown) {
-      console.error("Error durante el login:", err)
-      setError("Error de conexión. Por favor, intenta de nuevo.")
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
+  setIsLoading(true)
+  setError("")
+
+  try {
+    const result = await loginUser({ email, password })
+
+    if (!result.success) {
+      setError(result.error || "Error al iniciar sesión")
       setIsLoading(false)
+      return
     }
+
+    const token = result.data?.token
+    if (!token) {
+      setError("No se recibió token del servidor.")
+      setIsLoading(false)
+      return
+    }
+
+    // 🔥 ESTA LÍNEA ES LA CLAVE:
+    // Nombre de cookie DEBE ser "auth-token" (igual que en middleware.ts)
+    document.cookie = `auth-token=${token}; path=/; max-age=86400; SameSite=Lax`
+
+    // Opcional: seguir guardando en localStorage si lo quieres para el cliente
+    localStorage.setItem("authToken", token)
+
+    router.push("/dashboard")
+  } catch (err) {
+    console.error("Error durante el login:", err)
+    setError("Error de conexión. Por favor, intenta de nuevo.")
+    setIsLoading(false)
   }
+}
+
 
   return (
     <div className="space-y-6 fade-in-up">

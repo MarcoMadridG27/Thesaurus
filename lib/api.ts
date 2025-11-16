@@ -102,10 +102,23 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
       throw new Error(errorData.detail || errorData.message || `Error: ${response.status}`)
     }
 
-    const data = await response.json()
+    const raw = await response.json()
+
+    // Normalizamos la respuesta del backend:
+    // raw = { access_token, token_type, expires_in }
+    const mappedData = {
+      token: raw.access_token,          // <- lo que usarás en el front
+      tokenType: raw.token_type,
+      expiresIn: raw.expires_in,
+    }
+
+    if (!mappedData.token) {
+      throw new Error('Respuesta de login inválida: falta access_token')
+    }
+
     return {
       success: true,
-      data,
+      data: mappedData,
     }
   } catch (error) {
     return {
@@ -114,6 +127,7 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
     }
   }
 }
+
 
 // Validate RUC (Peruvian tax ID)
 export async function validateRuc(ruc: string): Promise<ApiResponse<RucData>> {
@@ -161,20 +175,24 @@ export async function signUpUser(userData: SignUpData): Promise<ApiResponse> {
     }
 
     const data = await response.json()
-    
-    // Si el registro es exitoso, hacer login automáticamente
-    if (data.success) {
-      const loginResult = await loginUser({
-        email: userData.email,
-        password: userData.password,
-      })
-      return loginResult
+
+    // ✅ Registro OK -> intentamos login automático SIEMPRE
+    const loginResult = await loginUser({
+      email: userData.email,
+      password: userData.password,
+    })
+
+    // Si el login falla, al menos devolvemos que el registro estuvo bien
+    if (!loginResult.success) {
+      return {
+        success: true,
+        message: 'Registro exitoso, pero hubo un problema al iniciar sesión automáticamente.',
+        data,
+      }
     }
-    
-    return {
-      success: true,
-      data,
-    }
+
+    // Devolvemos directamente el resultado del login (con token, etc.)
+    return loginResult
   } catch (error) {
     return {
       success: false,
@@ -182,6 +200,7 @@ export async function signUpUser(userData: SignUpData): Promise<ApiResponse> {
     }
   }
 }
+
 
 // OCR API call for invoice processing (flujo de 2 pasos)
 export async function processInvoice(file: File, tenantId: string = 'default-tenant', docKind: 'boleta' | 'factura' = 'factura'): Promise<ApiResponse> {
