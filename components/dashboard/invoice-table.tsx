@@ -9,21 +9,25 @@ import { invoiceStore } from "@/lib/store"
 import { useState, useEffect } from "react"
 
 export function InvoiceTable() {
-  const [invoices, setInvoices] = useState(invoiceStore.getInvoices())
+  // Start with empty array so server-render and first client render match.
+  // Load actual invoices from localStorage/store after mount to avoid hydration mismatch.
+  const [invoices, setInvoices] = useState(() => [])
 
   useEffect(() => {
-    console.log('📊 [InvoiceTable] Component mounted, initial invoices:', invoices.length)
-    
+    console.log('📊 [InvoiceTable] Component mounted, loading invoices from store')
+
+    // Load current invoices from the store (this will read localStorage on client)
+    const initial = invoiceStore.getInvoices()
+    console.log('📊 [InvoiceTable] Initial invoices loaded:', initial.length)
+    setInvoices(initial)
+
     const unsubscribe = invoiceStore.subscribe(() => {
       console.log('🔔 [InvoiceTable] Store updated, fetching new invoices')
       const newInvoices = invoiceStore.getInvoices()
       console.log('📊 [InvoiceTable] Setting invoices:', newInvoices.length)
       setInvoices(newInvoices)
     })
-    
-    // Force initial fetch
-    setInvoices(invoiceStore.getInvoices())
-    
+
     return unsubscribe
   }, [])
   

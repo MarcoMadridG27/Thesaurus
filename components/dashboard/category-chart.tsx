@@ -10,6 +10,7 @@ const COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#ec4899"
 export function CategoryChart() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,6 +23,8 @@ export function CategoryChart() {
             value: chartData.datasets[0]?.data[idx] || 0,
           }))
           setData(transformed)
+        } else {
+          setError(result.error || 'No se recibieron datos del backend para categorías')
         }
       } catch (error) {
         console.error('Error loading category chart:', error)
@@ -49,7 +52,11 @@ export function CategoryChart() {
       <Card className="p-6">
         <h3 className="font-semibold text-foreground mb-4">Gastos por categoría</h3>
         <div className="h-[300px] flex items-center justify-center text-foreground/50">
-          No hay datos disponibles
+          {error ? (
+            <span className="text-sm text-red-500">{error}</span>
+          ) : (
+            'No hay datos disponibles'
+          )}
         </div>
       </Card>
     )

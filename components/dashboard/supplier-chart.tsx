@@ -8,6 +8,7 @@ import { getChartData } from "@/lib/api"
 export function SupplierChart() {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -20,6 +21,8 @@ export function SupplierChart() {
             monto: chartData.datasets[0]?.data[idx] || 0,
           }))
           setData(transformed)
+        } else {
+          setError(result.error || 'No se recibieron datos del backend para proveedores')
         }
       } catch (error) {
         console.error('Error loading supplier chart:', error)
@@ -47,7 +50,11 @@ export function SupplierChart() {
       <Card className="p-6">
         <h3 className="font-semibold text-foreground mb-4">Gastos por proveedor</h3>
         <div className="h-[300px] flex items-center justify-center text-foreground/50">
-          No hay datos disponibles
+          {error ? (
+            <span className="text-sm text-red-500">{error}</span>
+          ) : (
+            'No hay datos disponibles'
+          )}
         </div>
       </Card>
     )

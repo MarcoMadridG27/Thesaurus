@@ -12,6 +12,7 @@ interface ExpenseChartProps {
 export function ExpenseChart({ title = "Gastos mensuales" }: Readonly<ExpenseChartProps>) {
   const [data, setData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,9 +27,13 @@ export function ExpenseChart({ title = "Gastos mensuales" }: Readonly<ExpenseCha
             previous: chartData.datasets[1]?.data[idx] || 0,
           }))
           setData(transformed)
+        } else {
+          // Do not fabricate data — surface error or leave empty
+          setError(result.error || 'No se recibieron datos del backend para gastos')
         }
       } catch (error) {
         console.error('Error loading expense chart:', error)
+        setError((error as Error)?.message || 'Error al cargar datos')
       } finally {
         setLoading(false)
       }
@@ -53,7 +58,11 @@ export function ExpenseChart({ title = "Gastos mensuales" }: Readonly<ExpenseCha
       <Card className="p-6">
         <h3 className="font-semibold text-foreground mb-4">{title}</h3>
         <div className="h-[300px] flex items-center justify-center text-foreground/50">
-          No hay datos disponibles
+          {error ? (
+            <span className="text-sm text-red-500">{error}</span>
+          ) : (
+            'No hay datos disponibles'
+          )}
         </div>
       </Card>
     )

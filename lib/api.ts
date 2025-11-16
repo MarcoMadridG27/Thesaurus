@@ -1,10 +1,16 @@
 // API configuration and utilities
 
+// Ensure base URLs always end with a trailing slash so callers can safely append paths
+function withTrailingSlash(value: string | undefined, fallback: string) {
+  const candidate = value ?? fallback
+  return candidate.endsWith('/') ? candidate : `${candidate}/`
+}
+
 const API_CONFIG = {
-  LOGIN_URL: process.env.NEXT_PUBLIC_LOGIN_URL || process.env.NEXT_LOGIN_URL || 'http://44.212.163.253:3000/auth/',
-  BASE_URL: 'http://44.212.163.253:3000/',
-  OCR_URL: process.env.NEXT_PUBLIC_OCR_URL || process.env.NEXT_OCR_URL || 'http://localhost:9000/',
-  INSIGHTS_URL: process.env.NEXT_PUBLIC_INSIGHTS_URL || 'http://localhost:2000/',
+  LOGIN_URL: withTrailingSlash(process.env.NEXT_PUBLIC_LOGIN_URL || process.env.NEXT_LOGIN_URL, 'http://44.212.163.253:3000/auth'),
+  BASE_URL: withTrailingSlash(undefined, 'http://44.212.163.253:3000'),
+  OCR_URL: withTrailingSlash(process.env.NEXT_PUBLIC_OCR_URL || process.env.NEXT_OCR_URL, 'http://localhost:9000'),
+  INSIGHTS_URL: withTrailingSlash(process.env.NEXT_PUBLIC_INSIGHTS_URL, 'http://44.212.163.253:8001'),
 }
 
 export interface LoginCredentials {
@@ -318,36 +324,73 @@ export async function getChartData(
   period: 'week' | 'month' | 'quarter' | 'year' = 'month'
 ): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}insights/chart-data/${type}?period=${period}`, {
+    const url = `${API_CONFIG.INSIGHTS_URL}insights/chart-data/${type}?period=${period}`
+    console.log(`📡 [API] Requesting chart data -> ${url}`)
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    // Si no hay datos (422), devolver estructura vacía según el tipo
-    if (response.status === 422) {
-      const emptyData = {
-        success: true,
-        chart_type: type,
-        period,
-        data: {
-          labels: [],
-          datasets: [],
-        },
-      }
-      return {
-        success: true,
-        data: emptyData,
-      }
+    // Log status and body for debugging (clone response so we can still parse it)
+    try {
+      const rawText = await response.clone().text()
+      console.log(`📡 [API] Chart data response status=${response.status} body=${rawText}`)
+    } catch (e) {
+      console.warn('⚠️ [API] Could not read response body for chart data', e)
     }
 
+
+    // No inventar datos en caso de 422 o cualquier error: propagar el error al caller
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.detail || errorData.error || errorData.message || `Error: ${response.status}`)
+      const message = errorData.detail || errorData.error || errorData.message || `Error: ${response.status}`
+      console.warn(`⚠️ [API] getChartData failed: ${message}`)
+      return {
+        success: false,
+        error: message,
+      }
     }
 
     const data = await response.json()
+
+    // Heurística para detectar datos de muestra / mock que el backend pueda devolver
+    function isPlaceholderChartData(type: string, payload: any): boolean {
+      try {
+        const labels: string[] = payload?.data?.labels || []
+        if (!labels || labels.length === 0) return true
+
+        if (type === 'expense') {
+          // Etiquetas como 'Semana 1', 'Semana 2' suelen ser placeholders
+          if (labels.some(l => /^Semana\s*\d+/i.test(l))) return true
+        }
+
+        if (type === 'supplier') {
+          // Nombres genéricos como EMPRESA ABC SAC o PROVEEDOR 123 SAC son probables mocks
+          if (labels.some(l => /EMPRESA\s+|PROVEEDOR\s+/i.test(l))) return true
+        }
+
+        if (type === 'category') {
+          // Etiqueta única 'Otros' o 'Others' puede indicar placeholder
+          if (labels.length === 1 && /otros|others|uncategorized/i.test(labels[0])) return true
+        }
+
+        return false
+      } catch (e) {
+        return false
+      }
+    }
+
+    if (isPlaceholderChartData(type, data)) {
+      console.warn(`⚠️ [API] getChartData detected placeholder data for type=${type} — treating as no-data`)
+      return {
+        success: false,
+        error: 'El backend devolvió datos de ejemplo (placeholder).',
+      }
+    }
+
+    console.log('✅ [API] getChartData success:', { type, period, data })
     return {
       success: true,
       data,
@@ -538,18 +581,57 @@ export async function createChatSession(context?: ChatContext): Promise<ApiRespo
 
     const data = await response.json()
     
-    // El backend ya devuelve la URL correcta del WebSocket
-    // Solo necesitamos asegurarnos de que use el protocolo correcto
-    if (data.websocket_url) {
-      // Si el backend devuelve http/https, convertir a ws/wss
-      const wsProtocol = API_CONFIG.INSIGHTS_URL.startsWith('https') ? 'wss://' : 'ws://'
-      const wsBase = data.websocket_url
+    // Log raw response for debugging websocket host issues
+    console.log('📡 [API] createChatSession response from backend:', data)
+    console.log('📡 [API] Resolved INSIGHTS_URL=', API_CONFIG.INSIGHTS_URL)
+
+    // El backend puede devolver una websocket_url absoluta o sólo session_id.
+    // Preferimos construir la URL final usando `API_CONFIG.INSIGHTS_URL` cuando:
+    // - el backend devuelve sólo `session_id`, o
+    // - el backend devuelve una `websocket_url` que apunta a `localhost` pero
+    //   `API_CONFIG.INSIGHTS_URL` apunta a otra host (evitar usar URLs de ejemplo dev).
+
+    const wsProtocol = API_CONFIG.INSIGHTS_URL.startsWith('https') ? 'wss://' : 'ws://'
+
+    // Helper: build ws url from insights base + session id
+    const buildWsFromSession = (sessionId: string) => {
+      const base = API_CONFIG.INSIGHTS_URL.replace(/^https?:\/\//, '')
+      return `${wsProtocol}${base}chat/ws/${sessionId}`
+    }
+
+    // If backend returned session_id, build trusted websocket_url
+    if (data.session_id) {
+      data.websocket_url = buildWsFromSession(data.session_id)
+      console.log('📡 [API] Built websocket_url from session_id ->', data.websocket_url)
+    } else if (data.websocket_url) {
+      // If backend returned a websocket_url, normalize it to ws/wss
+      let wsBase = data.websocket_url
         .replace('https://', '')
         .replace('http://', '')
         .replace('wss://', '')
         .replace('ws://', '')
-      
-      data.websocket_url = `${wsProtocol}${wsBase}`
+
+      const normalized = `${wsProtocol}${wsBase}`
+
+      // If normalized points to localhost but our INSIGHTS_URL is not localhost,
+      // prefer constructing from the trusted API_CONFIG.INSIGHTS_URL and, if possible,
+      // extract session id from the returned websocket_url to preserve the session.
+      if (/localhost:\d+/.test(normalized) && !/localhost/.test(API_CONFIG.INSIGHTS_URL)) {
+        // try to extract session id from the path
+        const match = wsBase.match(/\/chat\/ws\/(.+)$/)
+        const sid = match ? match[1] : null
+        if (sid) {
+          data.websocket_url = buildWsFromSession(sid)
+          console.log('📡 [API] Overriding localhost websocket_url with insights host ->', data.websocket_url)
+        } else {
+          // fallback to normalized (but log warning)
+          data.websocket_url = normalized
+          console.warn('⚠️ [API] Backend returned localhost websocket_url and no session id could be extracted; using normalized localhost URL')
+        }
+      } else {
+        data.websocket_url = normalized
+      }
+      console.log('📡 [API] Normalized websocket_url ->', data.websocket_url)
     }
     
     return {
