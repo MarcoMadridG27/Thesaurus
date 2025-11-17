@@ -19,9 +19,12 @@ function ensureUrl(name: string, url: string) {
   if (!url) {
     throw new Error(`❌ Missing configuration: ${name}. You MUST define ${name} in Amplify.`)
   }
+
+  // Allow both http and https in development; warn if http is used.
   if (url.startsWith("http://")) {
-    throw new Error(`❌ Insecure URL for ${name}: ${url}. HTTPS required.`)
+    console.warn(`⚠️ Insecure URL for ${name}: ${url}. Using HTTP (consider HTTPS for production).`)
   }
+
   return url
 }
 
