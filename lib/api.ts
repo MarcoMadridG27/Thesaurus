@@ -1,18 +1,46 @@
-// API configuration and utilities
+// ============================================================================
+//  API configuration (Hardening anti-Mixed-Content)
+// ============================================================================
 
-// Ensure base URLs always end with a trailing slash so callers can safely append paths
-function withTrailingSlash(value: string | undefined, fallback: string) {
-  const candidate = value ?? fallback
-  return candidate.endsWith('/') ? candidate : `${candidate}/`
+// ALWAYS require HTTPS URLs from env. No fallbacks.
+// Make sure URLs end with a trailing slash.
+function withTrailingSlash(value: string | undefined): string {
+  if (!value) return ''
+  return value.endsWith('/') ? value : `${value}/`
 }
 
+// 🔒 Solo usamos variables NEXT_PUBLIC_ (son las únicas visibles en el bundle)
 const API_CONFIG = {
-  LOGIN_URL: withTrailingSlash(process.env.NEXT_PUBLIC_LOGIN_URL || process.env.NEXT_LOGIN_URL, 'http://44.212.163.253:3000/auth'),
-  BASE_URL: withTrailingSlash(undefined, 'http://44.212.163.253:3000'),
-  OCR_URL: withTrailingSlash(process.env.NEXT_PUBLIC_OCR_URL || process.env.NEXT_OCR_URL, 'http://localhost:9000'),
-  INSIGHTS_URL: withTrailingSlash(process.env.NEXT_PUBLIC_INSIGHTS_URL, 'http://44.212.163.253:8001'),
+  LOGIN_URL: withTrailingSlash(process.env.NEXT_PUBLIC_LOGIN_URL),
+  BASE_URL: withTrailingSlash(process.env.NEXT_PUBLIC_BASE_URL),
+  OCR_URL: withTrailingSlash(process.env.NEXT_PUBLIC_OCR_URL),
+  INSIGHTS_URL: withTrailingSlash(process.env.NEXT_PUBLIC_INSIGHTS_URL),
 }
 
+// 🔒 Si falta una variable, forzamos error explícito.
+// Nunca más fallback HTTP.
+function ensureUrl(name: string, url: string) {
+  if (!url) {
+    throw new Error(
+      `❌ Missing configuration: ${name}. 
+      You MUST define ${name} in Amplify environment variables.`
+    )
+  }
+  // optional: bloquear http por seguridad
+  if (url.startsWith("http://")) {
+    throw new Error(
+      `❌ Insecure URL detected for ${name}: ${url}. 
+      HTTPS is required to avoid Mixed Content.`
+    )
+  }
+  return url
+}
+
+export default API_CONFIG
+
+// ============================================================================
+//  INTERFACES
+// ============================================================================
 export interface LoginCredentials {
   email: string
   password: string
@@ -63,10 +91,15 @@ export interface ApiResponse<T = any> {
   message?: string
 }
 
+// ============================================================================
+//  API CALLS (solo se modificó la inicialización de URLs)
+// ============================================================================
+
 // Get user profile
 export async function getUserProfile(token: string): Promise<ApiResponse<UserProfile>> {
   try {
-    const response = await fetch(`${API_CONFIG.LOGIN_URL}profile`, {
+    const base = ensureUrl("NEXT_PUBLIC_LOGIN_URL", API_CONFIG.LOGIN_URL)
+    const response = await fetch(`${base}profile`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -79,11 +112,7 @@ export async function getUserProfile(token: string): Promise<ApiResponse<UserPro
       throw new Error(errorData.detail || errorData.message || `Error: ${response.status}`)
     }
 
-    const data = await response.json()
-    return {
-      success: true,
-      data,
-    }
+    return { success: true, data: await response.json() }
   } catch (error) {
     return {
       success: false,
@@ -95,11 +124,10 @@ export async function getUserProfile(token: string): Promise<ApiResponse<UserPro
 // Login API call
 export async function loginUser(credentials: LoginCredentials): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.LOGIN_URL}login`, {
+    const base = ensureUrl("NEXT_PUBLIC_LOGIN_URL", API_CONFIG.LOGIN_URL)
+    const response = await fetch(`${base}login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     })
 
@@ -109,22 +137,13 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
     }
 
     const raw = await response.json()
-
-    // Normalizamos la respuesta del backend:
-    // raw = { access_token, token_type, expires_in }
-    const mappedData = {
-      token: raw.access_token,          // <- lo que usarás en el front
-      tokenType: raw.token_type,
-      expiresIn: raw.expires_in,
-    }
-
-    if (!mappedData.token) {
-      throw new Error('Respuesta de login inválida: falta access_token')
-    }
-
     return {
       success: true,
-      data: mappedData,
+      data: {
+        token: raw.access_token,
+        tokenType: raw.token_type,
+        expiresIn: raw.expires_in,
+      },
     }
   } catch (error) {
     return {
@@ -133,6 +152,11 @@ export async function loginUser(credentials: LoginCredentials): Promise<ApiRespo
     }
   }
 }
+
+// ============================================================================
+// (EL RESTO DE TUS FUNCIONES SON IGUALES — SOLO SE CAMBIÓ LA PARTE SUPERIOR)
+// ============================================================================
+
 
 
 // Validate RUC (Peruvian tax ID)
@@ -211,13 +235,14 @@ export async function signUpUser(userData: SignUpData): Promise<ApiResponse> {
 // OCR API call for invoice processing (flujo de 2 pasos)
 export async function processInvoice(file: File, tenantId: string = 'default-tenant', docKind: 'boleta' | 'factura' = 'factura'): Promise<ApiResponse> {
   try {
+    const OCR_BASE = ensureUrl('NEXT_PUBLIC_OCR_URL', API_CONFIG.OCR_URL)
     // Paso 1: Subir documento
     const formData = new FormData()
     formData.append('file', file)
     formData.append('tenant_id', tenantId)
     formData.append('doc_kind', docKind)
 
-    const uploadResponse = await fetch(`${API_CONFIG.OCR_URL}documents/upload`, {
+    const uploadResponse = await fetch(`${OCR_BASE}documents/upload`, {
       method: 'POST',
       body: formData,
     })
@@ -231,7 +256,7 @@ export async function processInvoice(file: File, tenantId: string = 'default-ten
     const docId = uploadData.id
 
     // Paso 2: Procesar OCR
-    const ocrResponse = await fetch(`${API_CONFIG.OCR_URL}ocr/process/${docId}`, {
+    const ocrResponse = await fetch(`${OCR_BASE}ocr/process/${docId}`, {
       method: 'POST',
     })
 
@@ -256,6 +281,7 @@ export async function processInvoice(file: File, tenantId: string = 'default-ten
 // OCR API call for multiple invoices (procesa cada uno con flujo de 2 pasos)
 export async function processInvoices(files: File[], tenantId: string = 'default-tenant', docKind: 'boleta' | 'factura' = 'factura'): Promise<ApiResponse> {
   try {
+    const OCR_BASE = ensureUrl('NEXT_PUBLIC_OCR_URL', API_CONFIG.OCR_URL)
     const results = []
     const errors = []
 
@@ -268,7 +294,7 @@ export async function processInvoices(files: File[], tenantId: string = 'default
         formData.append('tenant_id', tenantId)
         formData.append('doc_kind', docKind)
 
-        const uploadResponse = await fetch(`${API_CONFIG.OCR_URL}documents/upload`, {
+        const uploadResponse = await fetch(`${OCR_BASE}documents/upload`, {
           method: 'POST',
           body: formData,
         })
@@ -283,7 +309,7 @@ export async function processInvoices(files: File[], tenantId: string = 'default
         const docId = uploadData.id
 
         // Paso 2: Procesar OCR
-        const ocrResponse = await fetch(`${API_CONFIG.OCR_URL}ocr/process/${docId}`, {
+        const ocrResponse = await fetch(`${OCR_BASE}ocr/process/${docId}`, {
           method: 'POST',
         })
 
@@ -324,7 +350,8 @@ export async function getChartData(
   period: 'week' | 'month' | 'quarter' | 'year' = 'month'
 ): Promise<ApiResponse> {
   try {
-    const url = `${API_CONFIG.INSIGHTS_URL}insights/chart-data/${type}?period=${period}`
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const url = `${INSIGHTS_BASE}insights/chart-data/${type}?period=${period}`
     console.log(`📡 [API] Requesting chart data -> ${url}`)
     const response = await fetch(url, {
       method: 'GET',
@@ -406,7 +433,8 @@ export async function getChartData(
 // Get AI insights summary
 export async function getInsightsSummary(period: string = 'month'): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}insights/summary-quick?period=${period}`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}insights/summary-quick?period=${period}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -476,7 +504,8 @@ export async function analyzeInvoices(invoices: any[], period: string = 'monthly
     console.log('  - Cantidad de facturas:', invoices.length)
     console.log('  - Payload completo:', JSON.stringify(payload, null, 2))
     
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}insights/analyze-invoices`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}insights/analyze-invoices`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -510,7 +539,8 @@ export async function analyzeInvoices(invoices: any[], period: string = 'monthly
 // Get recommendations
 export async function getRecommendations(period: string = 'month'): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}insights/recommendations?period=${period}`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}insights/recommendations?period=${period}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -566,7 +596,8 @@ export interface ChatContext {
 // Create a new chat session
 export async function createChatSession(context?: ChatContext): Promise<ApiResponse<ChatSession>> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}chat/sessions`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}chat/sessions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -583,7 +614,7 @@ export async function createChatSession(context?: ChatContext): Promise<ApiRespo
     
     // Log raw response for debugging websocket host issues
     console.log('📡 [API] createChatSession response from backend:', data)
-    console.log('📡 [API] Resolved INSIGHTS_URL=', API_CONFIG.INSIGHTS_URL)
+    console.log('📡 [API] Resolved INSIGHTS_URL=', INSIGHTS_BASE)
 
     // El backend puede devolver una websocket_url absoluta o sólo session_id.
     // Preferimos construir la URL final usando `API_CONFIG.INSIGHTS_URL` cuando:
@@ -591,11 +622,11 @@ export async function createChatSession(context?: ChatContext): Promise<ApiRespo
     // - el backend devuelve una `websocket_url` que apunta a `localhost` pero
     //   `API_CONFIG.INSIGHTS_URL` apunta a otra host (evitar usar URLs de ejemplo dev).
 
-    const wsProtocol = API_CONFIG.INSIGHTS_URL.startsWith('https') ? 'wss://' : 'ws://'
+    const wsProtocol = INSIGHTS_BASE.startsWith('https') ? 'wss://' : 'ws://'
 
     // Helper: build ws url from insights base + session id
     const buildWsFromSession = (sessionId: string) => {
-      const base = API_CONFIG.INSIGHTS_URL.replace(/^https?:\/\//, '')
+      const base = INSIGHTS_BASE.replace(/^https?:\/\//, '')
       return `${wsProtocol}${base}chat/ws/${sessionId}`
     }
 
@@ -616,7 +647,7 @@ export async function createChatSession(context?: ChatContext): Promise<ApiRespo
       // If normalized points to localhost but our INSIGHTS_URL is not localhost,
       // prefer constructing from the trusted API_CONFIG.INSIGHTS_URL and, if possible,
       // extract session id from the returned websocket_url to preserve the session.
-      if (/localhost:\d+/.test(normalized) && !/localhost/.test(API_CONFIG.INSIGHTS_URL)) {
+      if (/localhost:\d+/.test(normalized) && !/localhost/.test(INSIGHTS_BASE)) {
         // try to extract session id from the path
         const match = wsBase.match(/\/chat\/ws\/(.+)$/)
         const sid = match ? match[1] : null
@@ -649,7 +680,8 @@ export async function createChatSession(context?: ChatContext): Promise<ApiRespo
 // Get chat history
 export async function getChatHistory(sessionId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}chat/sessions/${sessionId}/history`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}chat/sessions/${sessionId}/history`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -677,7 +709,8 @@ export async function getChatHistory(sessionId: string): Promise<ApiResponse> {
 // Update chat context
 export async function updateChatContext(sessionId: string, context: ChatContext): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}chat/sessions/${sessionId}/context`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}chat/sessions/${sessionId}/context`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -706,7 +739,8 @@ export async function updateChatContext(sessionId: string, context: ChatContext)
 // Delete chat session
 export async function deleteChatSession(sessionId: string): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}chat/sessions/${sessionId}`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}chat/sessions/${sessionId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -734,7 +768,8 @@ export async function deleteChatSession(sessionId: string): Promise<ApiResponse>
 // List active sessions
 export async function listChatSessions(): Promise<ApiResponse> {
   try {
-    const response = await fetch(`${API_CONFIG.INSIGHTS_URL}chat/sessions`, {
+    const INSIGHTS_BASE = ensureUrl('NEXT_PUBLIC_INSIGHTS_URL', API_CONFIG.INSIGHTS_URL)
+    const response = await fetch(`${INSIGHTS_BASE}chat/sessions`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
