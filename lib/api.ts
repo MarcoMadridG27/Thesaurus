@@ -4,38 +4,26 @@
 
 // ALWAYS require HTTPS URLs from env. No fallbacks.
 // Make sure URLs end with a trailing slash.
-function withTrailingSlash(value: string | undefined): string {
+function withTrailingSlash(value?: string): string {
   if (!value) return ''
   return value.endsWith('/') ? value : `${value}/`
 }
 
-// 🔒 Solo usamos variables NEXT_PUBLIC_ (son las únicas visibles en el bundle)
 const API_CONFIG = {
   LOGIN_URL: withTrailingSlash(process.env.NEXT_PUBLIC_LOGIN_URL),
-  BASE_URL: withTrailingSlash(process.env.NEXT_PUBLIC_BASE_URL),
   OCR_URL: withTrailingSlash(process.env.NEXT_PUBLIC_OCR_URL),
   INSIGHTS_URL: withTrailingSlash(process.env.NEXT_PUBLIC_INSIGHTS_URL),
 }
 
-// 🔒 Si falta una variable, forzamos error explícito.
-// Nunca más fallback HTTP.
 function ensureUrl(name: string, url: string) {
   if (!url) {
-    throw new Error(
-      `❌ Missing configuration: ${name}. 
-      You MUST define ${name} in Amplify environment variables.`
-    )
+    throw new Error(`❌ Missing configuration: ${name}. You MUST define ${name} in Amplify.`)
   }
-  // optional: bloquear http por seguridad
   if (url.startsWith("http://")) {
-    throw new Error(
-      `❌ Insecure URL detected for ${name}: ${url}. 
-      HTTPS is required to avoid Mixed Content.`
-    )
+    throw new Error(`❌ Insecure URL for ${name}: ${url}. HTTPS required.`)
   }
   return url
 }
-
 
 // ============================================================================
 //  INTERFACES
@@ -793,4 +781,4 @@ export async function listChatSessions(): Promise<ApiResponse> {
   }
 }
 
-export default API_CONFIG
+export { API_CONFIG }
