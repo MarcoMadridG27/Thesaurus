@@ -36,7 +36,6 @@ function ensureUrl(name: string, url: string) {
   return url
 }
 
-export default API_CONFIG
 
 // ============================================================================
 //  INTERFACES
